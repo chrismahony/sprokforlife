@@ -2,3 +2,5 @@
 
 export(process_deseq_PCA)
 export(run_deseq_contrast_heatmap)
+export(process_scrna_data)
+
