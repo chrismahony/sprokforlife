@@ -83,7 +83,7 @@ run_deseq_contrast_heatmap  <- function (dds, meta_data, targetvar, p_value_thre
 
 
 
-
+#' @export
 process_scrna_data <- function(file_list, sample_names, n_dims = 50, target_n_clusters = 10,
                                resolution_range = seq(0.05, 0.3, by = 0.5),
                                min_nFeature_RNA = 500, max_nFeature_RNA = 7000,
