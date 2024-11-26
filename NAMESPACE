@@ -3,3 +3,4 @@
 export(process_deseq_PCA)
 export(process_scrna_data)
 export(run_deseq_contrast_heatmap)
+export(process_scATAC_data)
