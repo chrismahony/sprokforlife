@@ -4,3 +4,8 @@ export(process_deseq_PCA)
 export(process_scrna_data)
 export(run_deseq_contrast_heatmap)
 export(process_scATAC_data)
+export(process_grn_analysis)
+export(coembed_data_function)
+export(process_co_embed_list)
+
+
