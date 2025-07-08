@@ -111,10 +111,14 @@ process_scATAC_data <- function(h5_file,
   cellcodes <- data.frame(barcodes = colnames(aggr))
   cellcodes$libcodes <- gsub(pattern = ".+-", replacement = "", cellcodes$barcodes)
   libraries_map <- read_csv(libraries_map_file)
-  cellcodes$samples <- libraries_map$library_id[match(cellcodes$libcodes, libraries_map$library_id)]
-  cellcodes <- cellcodes[, "samples", drop = FALSE]
-  colnames(cellcodes) <- "orig.ident"
-  aggr <- AddMetaData(aggr, cellcodes)
+  
+  for (i in 1:nrow(cellcodes)) {
+  row_index <- cellcodes$libcodes[i]
+  cellcodes$samples[i] <- libraries_map$library_id[as.integer(row_index)]
+}
+      aggr <- AddMetaData(aggr, cellcodes)
+    
+    colnames(cellcodes)[3] <- "orig.ident"
   
   # Compute quality control metrics
   aggr <- NucleosomeSignal(object = aggr)
