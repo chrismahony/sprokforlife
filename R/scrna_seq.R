@@ -116,9 +116,14 @@ process_scATAC_data <- function(h5_file,
   row_index <- cellcodes$libcodes[i]
   cellcodes$samples[i] <- libraries_map$library_id[as.integer(row_index)]
 }
-      aggr <- AddMetaData(aggr, cellcodes)
-    
+      
     colnames(cellcodes)[3] <- "orig.ident"
+    rownames(cellcodes) <- colnames(aggr)
+    cellcodes$libcodes <- NULL
+    cellcodes$barcodes <- NULL
+    colnames(cellcodes) <- "orig.ident"
+    aggr <- AddMetaData(aggr, cellcodes)
+    
   
   # Compute quality control metrics
   aggr <- NucleosomeSignal(object = aggr)
