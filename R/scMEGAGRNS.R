@@ -122,59 +122,62 @@ coembed_data_function <- function(ATAC_objs, RNA_objs, gene.activities) {
 
 #' @export
 process_co_embed_list <- function(co_embed_list, RNA_objs, ATAC_objs) {
-    pair_list <- list()
-    final_pair_list <- list()
-    
-    for (i in 1:length(co_embed_list)) {
-        # Check if "ATAC" assay exists
-        if ("ATAC" %in% names(co_embed_list[[i]]@assays)) {
-            message(paste0("Processing co-embedded object ", i, ": 'ATAC' assay found."))
-        } else if ("peaks" %in% names(co_embed_list[[i]]@assays)) {
-            message(paste0("Processing co-embedded object ", i, ": 'ATAC' assay missing, using 'peaks' instead."))
-            co_embed_list[[i]][["ATAC"]] <- co_embed_list[[i]][["peaks"]]
-        } else {
-            message(paste0("Skipping co-embedded object ", i, ": neither 'ATAC' nor 'peaks' assays found."))
-            next  # Skip this iteration if neither "ATAC" nor "peaks" exists
-        }
-        
-        message("Pairing")
-        # Perform PairCells operation
-        pair_list[[i]] <- PairCells(
-            object = co_embed_list[[i]], 
-            reduction = "harmony",
-            pair.by = "tech", 
-            ident1 = "ATAC", 
-            ident2 = "RNA"
-        )
-        
-        message("Selecting cells and filtering")
-        # Select and filter cells
-        sel_cells <- c(pair_list[[i]]$ATAC, pair_list[[i]]$RNA)
-        co_embed_list[[i]] <- co_embed_list[[i]][, sel_cells]
-        
-        message("Creating final paired object")
-        # Create paired object
-        final_pair_list[[i]] <- CreatePairedObject(
-            pair_list[[i]], 
-            obj.coembed = co_embed_list[[i]],
-            obj.rna = RNA_objs[[i]],
-            obj.atac = ATAC_objs[[i]],
-            rna.assay = "RNA", 
-            atac.assay = "peaks"
-        )
+  pair_list <- list()
+  final_pair_list <- list()
+
+  for (i in 1:length(co_embed_list)) {
+    if ("ATAC" %in% names(co_embed_list[[i]]@assays)) {
+      message(paste0("Processing co-embedded object ", i, ": 'ATAC' assay found."))
+    } else if ("peaks" %in% names(co_embed_list[[i]]@assays)) {
+      message(paste0("Processing co-embedded object ", i, ": 'ATAC' assay missing, using 'peaks' instead."))
+      co_embed_list[[i]][["ATAC"]] <- co_embed_list[[i]][["peaks"]]
+    } else {
+      message(paste0("Skipping co-embedded object ", i, ": neither 'ATAC' nor 'peaks' assays found."))
+      next
     }
-    
-    # Merge all paired objects
-    all_coembed_merge <- merge(final_pair_list[[1]], y = final_pair_list[-1])
-    
-    # Normalize, scale, find variable features, and run PCA/UMAP
-    all_coembed_merge <- NormalizeData(all_coembed_merge)  
-    all_coembed_merge <- all_coembed_merge %>%
-        ScaleData() %>%
-        FindVariableFeatures() %>%
-        RunPCA(verbose = FALSE) %>%
-        FindNeighbors(dims = 1:30, verbose = FALSE) %>%
-        RunUMAP(dims = 2:25, verbose = FALSE)
-    
-    return(all_coembed_merge)
+
+    message("Pairing")
+    pair_list[[i]] <- PairCells(
+      object = co_embed_list[[i]],
+      reduction = "harmony",
+      pair.by = "tech",
+      ident1 = "ATAC",
+      ident2 = "RNA"
+    )
+
+    message("Selecting cells and filtering")
+    rna_cells <- pair_list[[i]]$RNA
+    atac_cells <- pair_list[[i]]$ATAC
+
+    obj_rna_subset <- subset(RNA_objs[[i]], cells = rna_cells)
+    obj_atac_subset <- subset(ATAC_objs[[i]], cells = atac_cells)
+
+    sel_cells <- unique(c(rna_cells, atac_cells))
+    co_embed_list[[i]] <- subset(co_embed_list[[i]], cells = sel_cells)
+
+    message("Creating final paired object")
+    final_pair_list[[i]] <- CreatePairedObject(
+      pair_list[[i]],
+      obj.coembed = co_embed_list[[i]],
+      obj.rna = obj_rna_subset,
+      obj.atac = obj_atac_subset,
+      rna.assay = "RNA",
+      atac.assay = "peaks"
+    )
+  }
+
+  if (length(final_pair_list) == 0) {
+    stop("No valid paired objects were created.")
+  }
+
+  all_coembed_merge <- merge(final_pair_list[[1]], y = final_pair_list[-1])
+  all_coembed_merge <- NormalizeData(all_coembed_merge)
+  all_coembed_merge <- all_coembed_merge %>%
+    ScaleData() %>%
+    FindVariableFeatures() %>%
+    RunPCA(verbose = FALSE) %>%
+    FindNeighbors(dims = 1:30, verbose = FALSE) %>%
+    RunUMAP(dims = 2:25, verbose = FALSE)
+
+  return(all_coembed_merge)
 }
